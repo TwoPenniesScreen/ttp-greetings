@@ -26,6 +26,23 @@ export function validateSlide(input) {
   return { id, name, headline, subheading, logo, weight, enabled: input.enabled !== false, starts, ends, eventIds, schedule };
 }
 
+export function assignAdminNames(slides) {
+  const totals = new Map();
+  for (const slide of slides) {
+    const key = (slide.headline || slide.subheading || "Untitled slide").toLocaleLowerCase();
+    totals.set(key, (totals.get(key) || 0) + 1);
+  }
+  const counts = new Map();
+  for (const slide of [...slides].reverse()) {
+    const base = slide.headline || slide.subheading || "Untitled slide";
+    const key = base.toLocaleLowerCase();
+    const count = (counts.get(key) || 0) + 1;
+    counts.set(key, count);
+    slide.name = totals.get(key) > 1 ? `${base} ${count}` : base;
+  }
+  return slides;
+}
+
 export function londonParts(now = new Date()) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/London", weekday: "short", year: "numeric", month: "2-digit", day: "2-digit",
