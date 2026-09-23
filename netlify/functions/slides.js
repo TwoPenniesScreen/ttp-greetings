@@ -1,6 +1,6 @@
 import { readSlides,writeSlides } from "./_shared/store.js";
 import { adminGuard,json } from "./_shared/http.js";
-import { assignAdminNames,validateSlide,weightedPick,londonParts } from "./_shared/core.js";
+import { assignAdminNames,validateSlide,weightedPick,londonParts,renderSlide } from "./_shared/core.js";
 
 export default async request => {
   if (request.method === "GET") {
@@ -13,7 +13,8 @@ export default async request => {
     const exclude=(url.searchParams.get("exclude") || "").split(",").map(id=>id.slice(0,120)).filter(Boolean).slice(0,10);
     let event=null;
     try{const response=await fetch("https://ttp-brand.netlify.app/api/events?page=generic-slides",{signal:AbortSignal.timeout(3000)});if(response.ok)event=(await response.json()).active}catch{}
-    return json({slide:weightedPick(slides,Math.random,at,exclude,event?.id||null),at,event});
+    const selected=weightedPick(slides,Math.random,at,exclude,event?.id||null);
+    return json({slide:renderSlide(selected,at),at,event});
   }
   if (request.method === "PUT") {
     const denied=await adminGuard(request); if (denied) return denied;
