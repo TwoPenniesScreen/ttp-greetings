@@ -11,6 +11,7 @@ export function validateSlide(input) {
   const weight = Math.max(1, Math.min(20, Math.round(Number(input.weight) || 1)));
   const starts = /^\d{4}-\d{2}-\d{2}$/.test(input.starts || "") ? input.starts : "";
   const ends = /^\d{4}-\d{2}-\d{2}$/.test(input.ends || "") ? input.ends : "";
+  const eventIds = Array.isArray(input.eventIds) ? [...new Set(input.eventIds.map(value=>String(value)).filter(value=>/^[a-zA-Z0-9-]{1,80}$/.test(value)))].slice(0,20) : [];
   if (!headline && !subheading) throw new Error("Add a headline or subheading.");
   if (starts && ends && starts > ends) throw new Error("The end date must be after the start date.");
   const schedule = {};
@@ -22,7 +23,7 @@ export function validateSlide(input) {
     if (enabled && start > end) throw new Error(`${day.toUpperCase()}: end time must be after start time.`);
     schedule[day] = { enabled, start, end };
   }
-  return { id, name, headline, subheading, logo, weight, enabled: input.enabled !== false, starts, ends, schedule };
+  return { id, name, headline, subheading, logo, weight, enabled: input.enabled !== false, starts, ends, eventIds, schedule };
 }
 
 export function londonParts(now = new Date()) {
@@ -39,8 +40,11 @@ export function eligible(slide, at = londonParts()) {
   return Boolean(window?.enabled && window.start <= at.time && at.time <= window.end);
 }
 
-export function weightedPick(slides, random = Math.random, at = londonParts(), excludeIds = []) {
-  const eligibleSlides = slides.filter(slide => eligible(slide, at));
+export function weightedPick(slides, random = Math.random, at = londonParts(), excludeIds = [], eventId = null) {
+  const timed = slides.filter(slide => eligible(slide, at));
+  const eventSlides = eventId ? timed.filter(slide => slide.eventIds?.includes(eventId)) : [];
+  const evergreen = timed.filter(slide => !slide.eventIds?.length);
+  const eligibleSlides = eventId && eventSlides.length ? eventSlides : evergreen;
   const recent = Array.isArray(excludeIds) ? excludeIds : [excludeIds];
   let active = eligibleSlides;
   for (let count = recent.length; count > 0; count--) {

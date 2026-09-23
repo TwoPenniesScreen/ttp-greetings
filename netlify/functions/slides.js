@@ -11,7 +11,9 @@ export default async request => {
     }
     const url=new URL(request.url),at=londonParts();
     const exclude=(url.searchParams.get("exclude") || "").split(",").map(id=>id.slice(0,120)).filter(Boolean).slice(0,10);
-    return json({slide:weightedPick(slides,Math.random,at,exclude),at});
+    let event=null;
+    try{const response=await fetch("https://ttp-brand.netlify.app/api/events?page=generic-slides",{signal:AbortSignal.timeout(3000)});if(response.ok)event=(await response.json()).active}catch{}
+    return json({slide:weightedPick(slides,Math.random,at,exclude,event?.id||null),at,event});
   }
   if (request.method === "PUT") {
     const denied=await adminGuard(request); if (denied) return denied;
