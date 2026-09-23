@@ -2,7 +2,7 @@ export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 export const LOGOS = ["two-pennies", "basement"];
 
 export function validateSlide(input) {
-  const text = value => String(value ?? "").trim().slice(0, 120);
+  const text = value => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
   const id = text(input.id) || crypto.randomUUID();
   const headline = text(input.headline);
   const subheading = text(input.subheading);

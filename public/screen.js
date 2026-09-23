@@ -1,6 +1,6 @@
 const screen=document.querySelector('#screen'),headline=document.querySelector('.headline'),subheading=document.querySelector('.subheading'),logo=document.querySelector('.logo');
 const preload=url=>url?new Promise(resolve=>{const image=new Image();image.onload=image.onerror=resolve;image.src=url}):Promise.resolve();
-function fit(element,max,min){const context=document.createElement('canvas').getContext('2d'),lines=element.textContent.split('\n');while(max>min){context.font=`${max}px TwoPennies`;if(Math.max(...lines.map(line=>context.measureText(line).width))<=element.clientWidth&&lines.length*max*.9<=element.clientHeight)break;max-=2}element.style.fontSize=`${max}px`}
+function fit(element,max,min){const context=document.createElement('canvas').getContext('2d'),line=element.textContent.replace(/\s+/g,' ');element.textContent=line;while(max>min){context.font=`${max}px TwoPennies`;if(context.measureText(line).width<=element.clientWidth)break;max-=2}element.style.fontSize=`${max}px`}
 function scale(){const ratio=Math.min(innerWidth/1920,innerHeight/1080);screen.style.transform=`translate(${(innerWidth-1920*ratio)/2}px,${(innerHeight-1080*ratio)/2}px) scale(${ratio})`}
 addEventListener('resize',scale);scale();
 let recent=[];try{recent=JSON.parse(localStorage.getItem('ttp-recent-slides')||'[]');if(!Array.isArray(recent))recent=[]}catch{recent=[]}
