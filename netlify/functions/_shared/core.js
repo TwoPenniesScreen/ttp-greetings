@@ -1,19 +1,28 @@
 export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 export const LOGOS = ["two-pennies", "basement"];
+export const SLIDE_TYPES = ["standard", "christmas-countdown"];
 
 export function validateSlide(input) {
   const text = value => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
   const id = text(input.id) || crypto.randomUUID();
+  const type = SLIDE_TYPES.includes(input.type) ? input.type : "standard";
   const headline = text(input.headline);
   const subheading = text(input.subheading);
-  const name = text(input.name) || headline || "Untitled slide";
+  const name = text(input.name) || (type === "christmas-countdown" ? "CHRISTMAS COUNTDOWN" : headline) || "Untitled slide";
   const logo = LOGOS.includes(input.logo) ? input.logo : "two-pennies";
   const weight = Math.max(1, Math.min(20, Math.round(Number(input.weight) || 1)));
   const starts = /^\d{4}-\d{2}-\d{2}$/.test(input.starts || "") ? input.starts : "";
   const ends = /^\d{4}-\d{2}-\d{2}$/.test(input.ends || "") ? input.ends : "";
   const eventIds = Array.isArray(input.eventIds) ? [...new Set(input.eventIds.map(value=>String(value)).filter(value=>/^[a-zA-Z0-9-]{1,80}$/.test(value)))].slice(0,20) : [];
-  if (!headline && !subheading) throw new Error("Add a headline or subheading.");
+  if (type === "standard" && !headline && !subheading) throw new Error("Add a headline or subheading.");
   if (starts && ends && starts > ends) throw new Error("The end date must be after the start date.");
+  if (type === "christmas-countdown") {
+    if (!starts || !ends) throw new Error("Choose start and end dates for the Christmas countdown.");
+    const year = starts.slice(0,4);
+    if (ends.slice(0,4) !== year || starts > `${year}-12-24` || ends > `${year}-12-24`) {
+      throw new Error("The Christmas countdown dates must be in one year and finish by Christmas Eve.");
+    }
+  }
   const schedule = {};
   for (const day of DAYS) {
     const value = input.schedule?.[day];
@@ -23,18 +32,20 @@ export function validateSlide(input) {
     if (enabled && start > end) throw new Error(`${day.toUpperCase()}: end time must be after start time.`);
     schedule[day] = { enabled, start, end };
   }
-  return { id, name, headline, subheading, logo, weight, enabled: input.enabled !== false, starts, ends, eventIds, schedule };
+  return { id, name, type, headline, subheading, logo, weight, enabled: input.enabled !== false, starts, ends, eventIds, schedule };
 }
+
+const nameBase = slide => slide.type === "christmas-countdown" ? "CHRISTMAS COUNTDOWN" : slide.headline || slide.subheading || "Untitled slide";
 
 export function assignAdminNames(slides) {
   const totals = new Map();
   for (const slide of slides) {
-    const key = (slide.headline || slide.subheading || "Untitled slide").toLocaleLowerCase();
+    const key = nameBase(slide).toLocaleLowerCase();
     totals.set(key, (totals.get(key) || 0) + 1);
   }
   const counts = new Map();
   for (const slide of [...slides].reverse()) {
-    const base = slide.headline || slide.subheading || "Untitled slide";
+    const base = nameBase(slide);
     const key = base.toLocaleLowerCase();
     const count = (counts.get(key) || 0) + 1;
     counts.set(key, count);
@@ -51,8 +62,23 @@ export function londonParts(now = new Date()) {
   return { day: parts.weekday.toLowerCase(), date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
 }
 
+export function christmasCountdownText(date) {
+  const [year,month,day] = String(date).split("-").map(Number);
+  const today = Date.UTC(year,month-1,day);
+  const christmas = Date.UTC(year,11,25);
+  const sleeps = Math.round((christmas-today)/86400000);
+  return { headline: `${sleeps} SLEEP${sleeps === 1 ? "" : "S"}`, subheading: "UNTIL CHRISTMAS", sleeps };
+}
+
+export function renderSlide(slide, at = londonParts()) {
+  if (!slide || slide.type !== "christmas-countdown") return slide;
+  const text = christmasCountdownText(at.date);
+  return { ...slide, headline: text.headline, subheading: text.subheading };
+}
+
 export function eligible(slide, at = londonParts()) {
   if (!slide.enabled || (slide.starts && at.date < slide.starts) || (slide.ends && at.date > slide.ends)) return false;
+  if (slide.type === "christmas-countdown" && christmasCountdownText(at.date).sleeps < 1) return false;
   const window = slide.schedule?.[at.day];
   return Boolean(window?.enabled && window.start <= at.time && at.time <= window.end);
 }
