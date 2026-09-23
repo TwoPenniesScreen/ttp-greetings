@@ -9,8 +9,9 @@ export default async request => {
       const denied=await adminGuard(request); if (denied) return denied;
       return json({slides});
     }
-    const at=londonParts();
-    return json({slide:weightedPick(slides,Math.random,at),at});
+    const url=new URL(request.url),at=londonParts();
+    const exclude=(url.searchParams.get("exclude") || "").split(",").map(id=>id.slice(0,120)).filter(Boolean).slice(0,10);
+    return json({slide:weightedPick(slides,Math.random,at,exclude),at});
   }
   if (request.method === "PUT") {
     const denied=await adminGuard(request); if (denied) return denied;

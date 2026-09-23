@@ -39,8 +39,15 @@ export function eligible(slide, at = londonParts()) {
   return Boolean(window?.enabled && window.start <= at.time && at.time <= window.end);
 }
 
-export function weightedPick(slides, random = Math.random, at = londonParts()) {
-  const active = slides.filter(slide => eligible(slide, at));
+export function weightedPick(slides, random = Math.random, at = londonParts(), excludeIds = []) {
+  const eligibleSlides = slides.filter(slide => eligible(slide, at));
+  const recent = Array.isArray(excludeIds) ? excludeIds : [excludeIds];
+  let active = eligibleSlides;
+  for (let count = recent.length; count > 0; count--) {
+    const excluded = new Set(recent.slice(0, count));
+    const candidates = eligibleSlides.filter(slide => !excluded.has(slide.id));
+    if (candidates.length) { active = candidates; break; }
+  }
   if (!active.length) return null;
   const total = active.reduce((sum, slide) => sum + slide.weight, 0);
   let cursor = random() * total;
