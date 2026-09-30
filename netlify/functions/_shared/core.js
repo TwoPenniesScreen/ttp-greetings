@@ -1,6 +1,7 @@
 export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 export const LOGOS = ["two-pennies", "basement"];
 export const SLIDE_TYPES = ["standard", "christmas-countdown"];
+export const VENUES = ["two-pennies", "basement"];
 
 export function validateSlide(input) {
   const text = value => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
@@ -9,7 +10,15 @@ export function validateSlide(input) {
   const headline = text(input.headline);
   const subheading = text(input.subheading);
   const name = text(input.name) || (type === "christmas-countdown" ? "CHRISTMAS COUNTDOWN" : headline) || "Untitled slide";
-  const logo = LOGOS.includes(input.logo) ? input.logo : "two-pennies";
+  const fallbackLogo = LOGOS.includes(input.logo) ? input.logo : "two-pennies";
+  const venues = Array.isArray(input.venues)
+    ? [...new Set(input.venues.filter(value => VENUES.includes(value)))]
+    : [fallbackLogo];
+  if (!venues.length) throw new Error("Choose at least one venue.");
+  // The existing website renders one slide at a time and remains the Two
+  // Pennies display during migration. Publisher uses `venues` to build the
+  // separate venue-specific JPEGs.
+  const logo = venues.includes("two-pennies") ? "two-pennies" : "basement";
   const weight = Math.max(1, Math.min(20, Math.round(Number(input.weight) || 1)));
   const starts = /^\d{4}-\d{2}-\d{2}$/.test(input.starts || "") ? input.starts : "";
   const ends = /^\d{4}-\d{2}-\d{2}$/.test(input.ends || "") ? input.ends : "";
@@ -32,7 +41,7 @@ export function validateSlide(input) {
     if (enabled && start > end) throw new Error(`${day.toUpperCase()}: end time must be after start time.`);
     schedule[day] = { enabled, start, end };
   }
-  return { id, name, type, headline, subheading, logo, weight, enabled: input.enabled !== false, starts, ends, eventIds, schedule };
+  return { id, name, type, headline, subheading, logo, venues, weight, enabled: input.enabled !== false, starts, ends, eventIds, schedule };
 }
 
 const nameBase = slide => slide.type === "christmas-countdown" ? "CHRISTMAS COUNTDOWN" : slide.headline || slide.subheading || "Untitled slide";
