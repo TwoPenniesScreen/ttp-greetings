@@ -4,19 +4,12 @@ export const SLIDE_TYPES = ["standard", "christmas-countdown"];
 export const VENUES = ["two-pennies", "basement"];
 export const DELIVERY_MODES = ["auto", "static", "web"];
 
-const minutes = value => {
-  const [hour, minute] = String(value || "00:00").split(":").map(Number);
-  return hour * 60 + minute;
-};
-
 export function deliveryDecision(slide) {
   if (slide.delivery === "static" || slide.delivery === "web") return { mode: slide.delivery, reason: "Chosen manually" };
   if (slide.type !== "standard") return { mode: "web", reason: "Text changes with the date" };
   const windows = DAYS.map(day => slide.schedule?.[day]).filter(item => item?.enabled);
   if (!windows.length) return { mode: "web", reason: "No active time window" };
-  if (windows.some(item => minutes(item.end) - minutes(item.start) < 360)) return { mode: "web", reason: "Short time window" };
-  if (new Set(windows.map(item => `${item.start}-${item.end}`)).size > 1) return { mode: "web", reason: "Different times on different days" };
-  return { mode: "static", reason: "Fixed slide with a simple schedule" };
+  return { mode: "static", reason: "Fixed slide; AbleSign keeps its exact schedule" };
 }
 
 export function validateSlide(input) {
