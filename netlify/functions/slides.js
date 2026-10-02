@@ -1,6 +1,6 @@
 import { readSlides,writeSlides } from "./_shared/store.js";
 import { adminGuard,json } from "./_shared/http.js";
-import { assignAdminNames,validateSlide,weightedPick,londonParts,renderSlide } from "./_shared/core.js";
+import { assignAdminNames,validateSlide,weightedPick,londonParts,renderSlide,deliveryDecision } from "./_shared/core.js";
 
 export default async request => {
   if (request.method === "GET") {
@@ -8,6 +8,9 @@ export default async request => {
     if (new URL(request.url).searchParams.get("admin") === "1") {
       const denied=await adminGuard(request); if (denied) return denied;
       return json({slides});
+    }
+    if (new URL(request.url).searchParams.get("publisher") === "1") {
+      return json({slides:slides.map(slide=>({...slide,deliveryDecision:deliveryDecision(slide)}))});
     }
     const url=new URL(request.url),at=londonParts();
     const exclude=(url.searchParams.get("exclude") || "").split(",").map(id=>id.slice(0,120)).filter(Boolean).slice(0,10);

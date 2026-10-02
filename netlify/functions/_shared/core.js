@@ -2,6 +2,22 @@ export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 export const LOGOS = ["two-pennies", "basement"];
 export const SLIDE_TYPES = ["standard", "christmas-countdown"];
 export const VENUES = ["two-pennies", "basement"];
+export const DELIVERY_MODES = ["auto", "static", "web"];
+
+const minutes = value => {
+  const [hour, minute] = String(value || "00:00").split(":").map(Number);
+  return hour * 60 + minute;
+};
+
+export function deliveryDecision(slide) {
+  if (slide.delivery === "static" || slide.delivery === "web") return { mode: slide.delivery, reason: "Chosen manually" };
+  if (slide.type !== "standard") return { mode: "web", reason: "Text changes with the date" };
+  const windows = DAYS.map(day => slide.schedule?.[day]).filter(item => item?.enabled);
+  if (!windows.length) return { mode: "web", reason: "No active time window" };
+  if (windows.some(item => minutes(item.end) - minutes(item.start) < 360)) return { mode: "web", reason: "Short time window" };
+  if (new Set(windows.map(item => `${item.start}-${item.end}`)).size > 1) return { mode: "web", reason: "Different times on different days" };
+  return { mode: "static", reason: "Fixed slide with a simple schedule" };
+}
 
 export function validateSlide(input) {
   const text = value => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
@@ -23,6 +39,8 @@ export function validateSlide(input) {
   const starts = /^\d{4}-\d{2}-\d{2}$/.test(input.starts || "") ? input.starts : "";
   const ends = /^\d{4}-\d{2}-\d{2}$/.test(input.ends || "") ? input.ends : "";
   const eventIds = Array.isArray(input.eventIds) ? [...new Set(input.eventIds.map(value=>String(value)).filter(value=>/^[a-zA-Z0-9-]{1,80}$/.test(value)))].slice(0,20) : [];
+  const delivery = DELIVERY_MODES.includes(input.delivery) ? input.delivery : "auto";
+  const protectedEvergreen = Boolean(input.protectedEvergreen);
   if (type === "standard" && !headline && !subheading) throw new Error("Add a headline or subheading.");
   if (starts && ends && starts > ends) throw new Error("The end date must be after the start date.");
   if (type === "christmas-countdown") {
@@ -41,7 +59,7 @@ export function validateSlide(input) {
     if (enabled && start > end) throw new Error(`${day.toUpperCase()}: end time must be after start time.`);
     schedule[day] = { enabled, start, end };
   }
-  return { id, name, type, headline, subheading, logo, venues, weight, enabled: input.enabled !== false, starts, ends, eventIds, schedule };
+  return { id, name, type, headline, subheading, logo, venues, weight, enabled: input.enabled !== false, starts, ends, eventIds, delivery, protectedEvergreen, schedule };
 }
 
 const nameBase = slide => slide.type === "christmas-countdown" ? "CHRISTMAS COUNTDOWN" : slide.headline || slide.subheading || "Untitled slide";
