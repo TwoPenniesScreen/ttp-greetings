@@ -1,4 +1,5 @@
 const venue=/^\/basement(?:\/|$)/.test(location.pathname)?'basement':'two-pennies';
+const brandBase=location.hostname.startsWith('signage-control-review--')?'https://signage-control-review--ttp-brand.netlify.app':'https://ttp-brand.netlify.app';
 const screen=document.querySelector('#screen'),headline=document.querySelector('.headline'),subheading=document.querySelector('.subheading'),logo=document.querySelector('.logo');
 const preload=url=>url?new Promise(resolve=>{const image=new Image();image.onload=image.onerror=resolve;image.src=url}):Promise.resolve();
 function fit(element,max,min){const context=document.createElement('canvas').getContext('2d'),line=element.textContent.replace(/\s+/g,' ');element.textContent=line;while(max>min){context.font=`${max}px TwoPennies`;if(context.measureText(line).width<=element.clientWidth)break;max-=2}element.style.fontSize=`${max}px`}
@@ -7,7 +8,7 @@ addEventListener('resize',scale);scale();
 let recent=[];try{recent=JSON.parse(localStorage.getItem('ttp-recent-slides')||'[]');if(!Array.isArray(recent))recent=[]}catch{recent=[]}
 Promise.all([
  fetch(`/api/slides${recent.length?`?exclude=${encodeURIComponent(recent.slice(0,10).join(','))}`:''}`,{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()),
- fetch(`https://ttp-brand.netlify.app/api/theme?slot=generic&page=generic-slides&venue=${venue}`).then(r=>r.ok?r.json():Promise.reject()).catch(()=>({}))
+ fetch(`${brandBase}/api/theme?slot=generic&page=generic-slides&venue=${venue}`).then(r=>r.ok?r.json():Promise.reject()).catch(()=>({}))
 ]).then(async([selection,theme])=>{
  const slide=selection.slide;if(!slide)throw new Error();const background=theme.theme?.background||'/assets/fallback.webp';const foreground=theme.theme?.foreground||'';
  await Promise.all([preload(background),preload(foreground),document.fonts.ready]);

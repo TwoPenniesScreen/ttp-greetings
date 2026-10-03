@@ -4,7 +4,7 @@ import { assignAdminNames,validateSlide,weightedPick,londonParts,renderSlide,del
 
 export default async request => {
   if (request.method === "GET") {
-    const slides=await readSlides();
+    const slides=(await readSlides()).map(validateSlide);
     if (new URL(request.url).searchParams.get("admin") === "1") {
       const denied=await adminGuard(request); if (denied) return denied;
       return json({slides});
@@ -15,8 +15,9 @@ export default async request => {
     const url=new URL(request.url),at=londonParts();
     const exclude=(url.searchParams.get("exclude") || "").split(",").map(id=>id.slice(0,120)).filter(Boolean).slice(0,10);
     let event=null;
-    try{const response=await fetch("https://ttp-brand.netlify.app/api/events?page=generic-slides",{signal:AbortSignal.timeout(3000)});if(response.ok)event=(await response.json()).active}catch{}
-    const selected=weightedPick(slides,Math.random,at,exclude,event?.id||null);
+    const brandBase=new URL(request.url).hostname.startsWith("signage-control-review--")?"https://signage-control-review--ttp-brand.netlify.app":"https://ttp-brand.netlify.app";
+    try{const response=await fetch(`${brandBase}/api/events?page=generic-slides`,{signal:AbortSignal.timeout(3000)});if(response.ok)event=(await response.json()).active}catch{}
+    const selected=weightedPick(slides,Math.random,at,exclude,event?.seriesId||event?.id||null);
     return json({slide:renderSlide(selected,at),at,event});
   }
   if (request.method === "PUT") {

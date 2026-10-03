@@ -8,4 +8,4 @@ A lightweight text-slide screen and admin. The live page chooses one eligible we
 
 The initial library recreates the standard centred, image-free slides and their AbleSign schedules. Changes are stored in site-scoped Netlify Blobs.
 
-Slides with no event ticked are evergreen. A slide tagged to an event appears only while that event is active for Generic slides in `ttp-brand`; if an active event has no eligible tagged slide, the screen safely falls back to an eligible evergreen slide. The screen checks once on load and does not refresh itself.
+Slides assigned to **Generic** are evergreen. A slide tagged to an event appears only while that event is active for Generic slides in `ttp-brand`; if an active event has no eligible tagged slide, the screen safely falls back to an eligible evergreen slide. Without a specific date, an event slide runs for the whole event while following its weekday and time settings. A specific event date repeats by day and month when the package is reused in a later year. The screen checks once on load and does not refresh itself.

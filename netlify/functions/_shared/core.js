@@ -31,11 +31,14 @@ export function validateSlide(input) {
   const weight = Math.max(1, Math.min(20, Math.round(Number(input.weight) || 1)));
   const starts = /^\d{4}-\d{2}-\d{2}$/.test(input.starts || "") ? input.starts : "";
   const ends = /^\d{4}-\d{2}-\d{2}$/.test(input.ends || "") ? input.ends : "";
+  const dateRestricted = type === "christmas-countdown" ? true
+    : input.dateRestricted === undefined ? Boolean(starts || ends) : Boolean(input.dateRestricted);
   const eventIds = Array.isArray(input.eventIds) ? [...new Set(input.eventIds.map(value=>String(value)).filter(value=>/^[a-zA-Z0-9-]{1,80}$/.test(value)))].slice(0,20) : [];
   const delivery = DELIVERY_MODES.includes(input.delivery) ? input.delivery : "auto";
   const protectedEvergreen = Boolean(input.protectedEvergreen);
   if (type === "standard" && !headline && !subheading) throw new Error("Add a headline or subheading.");
-  if (starts && ends && starts > ends) throw new Error("The end date must be after the start date.");
+  if (type === "standard" && dateRestricted && !starts && !ends) throw new Error("Choose a specific date or untick the date limit.");
+  if (dateRestricted && starts && ends && starts > ends && !eventIds.length) throw new Error("The end date must be after the start date.");
   if (type === "christmas-countdown") {
     if (!starts || !ends) throw new Error("Choose start and end dates for the Christmas countdown.");
     const year = starts.slice(0,4);
@@ -52,7 +55,9 @@ export function validateSlide(input) {
     if (enabled && start > end) throw new Error(`${day.toUpperCase()}: end time must be after start time.`);
     schedule[day] = { enabled, start, end };
   }
-  return { id, name, type, headline, subheading, logo, venues, weight, enabled: input.enabled !== false, starts, ends, eventIds, delivery, protectedEvergreen, schedule };
+  return { id, name, type, headline, subheading, logo, venues, weight, enabled: input.enabled !== false,
+    starts: dateRestricted ? (starts || ends) : "", ends: dateRestricted ? (ends || starts) : "", dateRestricted,
+    eventIds, delivery, protectedEvergreen, schedule };
 }
 
 const nameBase = slide => slide.type === "christmas-countdown" ? "CHRISTMAS COUNTDOWN" : slide.headline || slide.subheading || "Untitled slide";
@@ -96,15 +101,27 @@ export function renderSlide(slide, at = londonParts()) {
   return { ...slide, headline: text.headline, subheading: text.subheading };
 }
 
-export function eligible(slide, at = londonParts()) {
-  if (!slide.enabled || (slide.starts && at.date < slide.starts) || (slide.ends && at.date > slide.ends)) return false;
+function withinAnnualRange(date, starts, ends) {
+  const current = String(date).slice(5), first = String(starts || ends).slice(5), last = String(ends || starts).slice(5);
+  if (!first || !last) return true;
+  return first <= last ? first <= current && current <= last : current >= first || current <= last;
+}
+
+export function eligible(slide, at = londonParts(), eventId = null) {
+  if (!slide.enabled) return false;
+  if (slide.dateRestricted) {
+    const reusableEventDate = Boolean(eventId && slide.eventIds?.includes(eventId));
+    if (reusableEventDate) {
+      if (!withinAnnualRange(at.date, slide.starts, slide.ends)) return false;
+    } else if ((slide.starts && at.date < slide.starts) || (slide.ends && at.date > slide.ends)) return false;
+  }
   if (slide.type === "christmas-countdown" && christmasCountdownText(at.date).sleeps < 1) return false;
   const window = slide.schedule?.[at.day];
   return Boolean(window?.enabled && window.start <= at.time && at.time <= window.end);
 }
 
 export function weightedPick(slides, random = Math.random, at = londonParts(), excludeIds = [], eventId = null) {
-  const timed = slides.filter(slide => eligible(slide, at));
+  const timed = slides.filter(slide => eligible(slide, at, eventId));
   const eventSlides = eventId ? timed.filter(slide => slide.eventIds?.includes(eventId)) : [];
   const evergreen = timed.filter(slide => !slide.eventIds?.length);
   const eligibleSlides = eventId && eventSlides.length ? eventSlides : evergreen;
