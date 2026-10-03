@@ -1,10 +1,12 @@
 import { readSlides,writeSlides } from "./_shared/store.js";
 import { adminGuard,json } from "./_shared/http.js";
-import { assignAdminNames,validateSlide,weightedPick,londonParts,renderSlide,deliveryDecision } from "./_shared/core.js";
+import { assignAdminNames,validateSlide,validateSlides,weightedPick,londonParts,renderSlide,deliveryDecision } from "./_shared/core.js";
+import { seedSlides } from "./_shared/seed.js";
 
 export default async request => {
   if (request.method === "GET") {
-    const slides=(await readSlides()).map(validateSlide);
+    const saved=validateSlides(await readSlides());
+    const slides=saved.length?saved:validateSlides(seedSlides);
     if (new URL(request.url).searchParams.get("admin") === "1") {
       const denied=await adminGuard(request); if (denied) return denied;
       return json({slides});

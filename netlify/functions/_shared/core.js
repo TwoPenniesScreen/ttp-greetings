@@ -60,6 +60,14 @@ export function validateSlide(input) {
     eventIds, delivery, protectedEvergreen, schedule };
 }
 
+export function validateSlides(values) {
+  if (!Array.isArray(values)) return [];
+  return values.flatMap(value => {
+    try { return [validateSlide(value)]; }
+    catch { return []; }
+  });
+}
+
 const nameBase = slide => slide.type === "christmas-countdown" ? "CHRISTMAS COUNTDOWN" : slide.headline || slide.subheading || "Untitled slide";
 
 export function assignAdminNames(slides) {
